@@ -140,8 +140,8 @@ func TestAccLibvirtVolume_BackingStoreTestByID(t *testing.T) {
 			        }
 				`, random, random, random, random, random),
 				Check: resource.ComposeTestCheckFunc(
-					testAccCheckLibvirtVolumeExists("libvirt_volume.backing-" + random, &volume),
-					testAccCheckLibvirtVolumeIsBackingStore("libvirt_volume." + random, &volume2),
+					testAccCheckLibvirtVolumeExists("libvirt_volume.backing-"+random, &volume),
+					testAccCheckLibvirtVolumeIsBackingStore("libvirt_volume."+random, &volume2),
 					resource.TestCheckResourceAttr(
 						"libvirt_volume."+random, "size", "1073741824"),
 				),
@@ -172,7 +172,7 @@ func TestAccLibvirtVolume_BackingStoreTestByName(t *testing.T) {
 				`, random, random, random, random, random),
 				Check: resource.ComposeTestCheckFunc(
 					testAccCheckLibvirtVolumeExists("libvirt_volume.backing-"+random, &volume),
-					testAccCheckLibvirtVolumeIsBackingStore("libvirt_volume." + random, &volume2),
+					testAccCheckLibvirtVolumeIsBackingStore("libvirt_volume."+random, &volume2),
 					resource.TestCheckResourceAttr(
 						"libvirt_volume."+random, "size", "1073741824"),
 				),

@@ -1,6 +1,7 @@
 package libvirt
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"net"
@@ -246,6 +247,30 @@ func resourceLibvirtNetwork() *schema.Resource {
 							Type:     schema.TypeString,
 							Optional: true,
 							ForceNew: true,
+						},
+					},
+				},
+			},
+			"dhcp_host": {
+				Type:     schema.TypeList,
+				Optional: true,
+				Required: false,
+				Elem: &schema.Resource{
+					Schema: map[string]*schema.Schema{
+						"name": {
+							Type:     schema.TypeString,
+							Optional: false,
+							Required: true,
+						},
+						"mac": {
+							Type:     schema.TypeString,
+							Optional: false,
+							Required: true,
+						},
+						"ip": {
+							Type:     schema.TypeString,
+							Optional: false,
+							Required: true,
 						},
 					},
 				},
@@ -662,5 +687,50 @@ func resourceLibvirtNetworkDelete(d *schema.ResourceData, meta interface{}) erro
 	if err != nil {
 		return fmt.Errorf("Error waiting for network to reach NOT-EXISTS state: %s", err)
 	}
+	return nil
+}
+
+func setStaticDHCPHosts(ipNet *net.IPNet, d *schema.ResourceData, dhcp *libvirtxml.NetworkDHCP) error {
+	hostsLst := []libvirtxml.NetworkDHCPHost{}
+
+	if dhcpHostsCount, ok := d.GetOk("dhcp_host.#"); ok {
+		for i := 0; i < dhcpHostsCount.(int); i++ {
+			dhcpHost := libvirtxml.NetworkDHCPHost{}
+
+			hostPrefix := fmt.Sprintf("dhcp_host.%d", i)
+			if name, ok := d.GetOk(hostPrefix + ".name"); ok {
+				dhcpHost.Name = name.(string)
+			}
+			if MAC, ok := d.GetOk(hostPrefix + ".mac"); ok {
+				dhcpHost.MAC = MAC.(string)
+			} else {
+				return errors.New("MAC address must be set for static DHCP hosts")
+			}
+
+			var IP net.IP
+			if ip, ok := d.GetOk(hostPrefix + ".ip"); ok {
+				ipStr := ip.(string)
+				if IP = net.ParseIP(ipStr); IP == nil {
+					return fmt.Errorf("Error parsing DHCP host address: '%s'", ipStr)
+				}
+			}
+
+			start, end := networkRange(ipNet)
+			if !ipNet.Contains(IP) {
+				return fmt.Errorf("IP address '%s' is not within given DHCP range '%s-%s'", IP, start, end)
+			}
+			if IP.Equal(start) || IP.Equal(end) {
+				return fmt.Errorf("Static DHCP host address '%s' cannot be gateway or broadcast address'", IP)
+			}
+
+			dhcpHost.IP = IP.String()
+			hostsLst = append(hostsLst, dhcpHost)
+		}
+	}
+
+	if len(hostsLst) > 0 {
+		dhcp.Hosts = hostsLst
+	}
+
 	return nil
 }

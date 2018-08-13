@@ -72,6 +72,13 @@ func getIPsFromResource(d *schema.ResourceData) ([]libvirtxml.NetworkIP, error) 
 		}
 
 		if dhcpEnabled {
+			_, ipNet, err := net.ParseCIDR(addressI.(string))
+			if err != nil {
+				return nil, fmt.Errorf("Error parsing addresses definition '%s': %s", addressI.(string), err)
+			}
+			if err := setStaticDHCPHosts(ipNet, d, dhcp); err != nil {
+				return nil, err
+			}
 			dni.DHCP = dhcp
 		} else {
 			// if a network exist with enabled but an user want to disable it
