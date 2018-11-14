@@ -690,7 +690,7 @@ func resourceLibvirtNetworkDelete(d *schema.ResourceData, meta interface{}) erro
 	return nil
 }
 
-func setStaticDHCPHosts(ipNet *net.IPNet, d *schema.ResourceData, dhcp *libvirtxml.NetworkDHCP) error {
+func setStaticDHCPHosts(ipNet *net.IPNet, d *schema.ResourceData) ([]libvirtxml.NetworkDHCPHost, error) {
 	hostsLst := []libvirtxml.NetworkDHCPHost{}
 
 	if dhcpHostsCount, ok := d.GetOk("dhcp_host.#"); ok {
@@ -704,23 +704,23 @@ func setStaticDHCPHosts(ipNet *net.IPNet, d *schema.ResourceData, dhcp *libvirtx
 			if MAC, ok := d.GetOk(hostPrefix + ".mac"); ok {
 				dhcpHost.MAC = MAC.(string)
 			} else {
-				return errors.New("MAC address must be set for static DHCP hosts")
+				return nil, errors.New("MAC address must be set for static DHCP hosts")
 			}
 
 			var IP net.IP
 			if ip, ok := d.GetOk(hostPrefix + ".ip"); ok {
 				ipStr := ip.(string)
 				if IP = net.ParseIP(ipStr); IP == nil {
-					return fmt.Errorf("Error parsing DHCP host address: '%s'", ipStr)
+					return nil, fmt.Errorf("Error parsing DHCP host address: '%s'", ipStr)
 				}
 			}
 
 			start, end := networkRange(ipNet)
 			if !ipNet.Contains(IP) {
-				return fmt.Errorf("IP address '%s' is not within given DHCP range '%s-%s'", IP, start, end)
+				return nil, fmt.Errorf("IP address '%s' is not within given DHCP range '%s-%s'", IP, start, end)
 			}
 			if IP.Equal(start) || IP.Equal(end) {
-				return fmt.Errorf("Static DHCP host address '%s' cannot be gateway or broadcast address'", IP)
+				return nil, fmt.Errorf("Static DHCP host address '%s' cannot be gateway or broadcast address'", IP)
 			}
 
 			dhcpHost.IP = IP.String()
@@ -728,9 +728,5 @@ func setStaticDHCPHosts(ipNet *net.IPNet, d *schema.ResourceData, dhcp *libvirtx
 		}
 	}
 
-	if len(hostsLst) > 0 {
-		dhcp.Hosts = hostsLst
-	}
-
-	return nil
+	return hostsLst, nil
 }

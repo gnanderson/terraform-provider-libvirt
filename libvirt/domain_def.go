@@ -52,6 +52,9 @@ func newDomainDef() libvirtxml.Domain {
 			Value:     1,
 		},
 		CPU: &libvirtxml.DomainCPU{},
+		CPUTune: &libvirtxml.DomainCPUTune{
+			VCPUPin: []libvirtxml.DomainCPUTuneVCPUPin{},
+		},
 		Devices: &libvirtxml.DomainDeviceList{
 			Graphics: []libvirtxml.DomainGraphic{
 				{

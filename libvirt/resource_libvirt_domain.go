@@ -435,7 +435,6 @@ func resourceLibvirtDomainCreate(d *schema.ResourceData, meta interface{}) error
 	domainDef.VCPU = &libvirtxml.DomainVCPU{
 		Value: d.Get("vcpu").(int),
 	}
-
 	domainDef.OS.Kernel = d.Get("kernel").(string)
 	domainDef.OS.Initrd = d.Get("initrd").(string)
 	domainDef.OS.Type.Arch = d.Get("arch").(string)
